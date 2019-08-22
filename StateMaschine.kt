@@ -65,10 +65,6 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) :
         }
       }
 
-//      if (fromStateNode.events[event] != null) {
-//        throw Exception("transition for event $event from state $fromState exists already")
-//      }
-
       val transitions = fromStateNode.events[event]
       if (transitions == null) {
         fromStateNode.events[event] =
