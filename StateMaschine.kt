@@ -16,6 +16,8 @@ interface Event
 class StateMaschine(val context: CoroutineContext = Dispatchers.Default) :
   CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
+  val DEBUG = false
+
   companion object {
     val STATE_MASCHINE_START = object : Event {
       override fun toString(): String {
@@ -119,14 +121,20 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) :
     launch {
       try {
         for (action in currentStateNode!!.arrivalActions) {
-          action.execute(Transition(STATE_MASCHINE_INITIAL, currentState!!, STATE_MASCHINE_START))
+          if (action.event == STATE_MASCHINE_START) {
+            if (DEBUG) println("executing arrival action for event STATE_MASCHINE_START")
+            action.execute(Transition(STATE_MASCHINE_INITIAL, currentState!!, STATE_MASCHINE_START))?.join()
+            break
+          }
         }
 
         for (event in channel) {
+          if (DEBUG) println("received event $event")
           val csn = currentStateNode ?: throw Exception("state maschine not started")
           val transitions = csn.events[event] ?: throw Exception("cannot find transition")
           for (transition in transitions) {
             if (transition.isValid()) {
+              if (DEBUG) println("transitioning to state ${transition.toState}")
               for (action in eventActions.filter { it.event == event }) {
                 action.execute(transition)?.join()
               }
@@ -150,6 +158,8 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) :
         throw e
       }
     }
+
+    if (DEBUG) println("state maschine started")
   }
 
 
