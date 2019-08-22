@@ -34,11 +34,9 @@ val sm = StateMaschine {
   }
 
   arriving at STARTED run {
-    println("reached STARTED")
+    ...
   }
 }
-
-...
 
 sm.start()
 
