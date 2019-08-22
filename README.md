@@ -56,6 +56,7 @@ The syntax for defining the states and transitions is as follows:
    **transition from** STATE1 **to** STATE2 (**by**|**via**) EVENT1 [**check { ... }**]
 
 The block after **check** must return a Boolean. If the block returns true the transition is executed when the event is received.
+If there is no transition defined for the event, an exception is raised. You can have more than one transition for the same event, e.g. when you have different checks for routing. They are then evaluated in the order of their definition and the first valid one is used.
 
 The first **from** state in the first **transition** definition will become the starting state of the state machine. If you want to start from a different state you can pass that state to the `start()` method, e.g. `start(FOOBAR)`.
 
