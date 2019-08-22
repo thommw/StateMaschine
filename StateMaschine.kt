@@ -13,7 +13,8 @@ interface State
 interface Event
 
 
-class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : CoroutineScope by CoroutineScope(Dispatchers.Default) {
+class StateMaschine(val context: CoroutineContext = Dispatchers.Default) :
+  CoroutineScope by CoroutineScope(Dispatchers.Default) {
 
   companion object {
     val STATE_MASCHINE_START = object : Event {
@@ -42,7 +43,12 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
     get() = currentStateNode?.state
 
 
-  fun addTransition(fromState: State, toState: State, vararg events: Event, condition: Condition? = null) {
+  fun addTransition(
+    fromState: State,
+    toState: State,
+    vararg events: Event,
+    condition: Condition? = null
+  ) {
     if (events.isEmpty()) throw Exception("must specify an event")
 
     for (event in events) {
@@ -57,11 +63,17 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
         }
       }
 
-      if (fromStateNode.events[event] != null) {
-        throw Exception("transition for event $event from state $fromState exists already")
-      }
+//      if (fromStateNode.events[event] != null) {
+//        throw Exception("transition for event $event from state $fromState exists already")
+//      }
 
-      fromStateNode.events[event] = Transition(fromState, toState, event, condition)
+      val transitions = fromStateNode.events[event]
+      if (transitions == null) {
+        fromStateNode.events[event] =
+          mutableListOf(Transition(fromState, toState, event, condition))
+      } else {
+        transitions.add(Transition(fromState, toState, event, condition))
+      }
 
       val toStateNode = stateNodes.find { it.state == toState }
       if (toStateNode == null) {
@@ -71,14 +83,21 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
   }
 
 
-  fun onDepartureFrom(fromState: State, toState: State? = null, event: Event? = null, action: Action) {
-    val fromStateNode = stateNodes.find { it.state == fromState } ?: throw Exception("state not found: $fromState")
+  fun onDepartureFrom(
+    fromState: State,
+    toState: State? = null,
+    event: Event? = null,
+    action: Action
+  ) {
+    val fromStateNode =
+      stateNodes.find { it.state == fromState } ?: throw Exception("state not found: $fromState")
     fromStateNode.departureActions.add(DepartureAction(fromState, toState, event, action))
   }
 
 
   fun onArrivalAt(toState: State, fromState: State? = null, event: Event? = null, action: Action) {
-    val toStateNode = stateNodes.find { it.state == toState } ?: throw Exception("state not found: $toState")
+    val toStateNode =
+      stateNodes.find { it.state == toState } ?: throw Exception("state not found: $toState")
     toStateNode.arrivalActions.add(ArrivalAction(toState, fromState, event, action))
   }
 
@@ -91,7 +110,8 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
   fun start(startState: State? = null) {
     if (currentStateNode != null) throw Exception("state maschine already running")
     if (startState != null) {
-      currentStateNode = stateNodes.find { it.state == startState } ?: throw Exception("state not found: $startState")
+      currentStateNode = stateNodes.find { it.state == startState }
+        ?: throw Exception("state not found: $startState")
     } else {
       currentStateNode = rootStateNode ?: throw Exception("state maschine not configured")
     }
@@ -104,20 +124,24 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
 
         for (event in channel) {
           val csn = currentStateNode ?: throw Exception("state maschine not started")
-          val transition = csn.events[event] ?: throw Exception("cannot find transition")
-          if (transition.isValid()) {
-            for (action in eventActions.filter { it.event == event }) {
-              action.execute(transition)?.join()
-            }
+          val transitions = csn.events[event] ?: throw Exception("cannot find transition")
+          for (transition in transitions) {
+            if (transition.isValid()) {
+              for (action in eventActions.filter { it.event == event }) {
+                action.execute(transition)?.join()
+              }
 
-            for (action in csn.departureActions) {
-              action.execute(transition)?.join()
-            }
+              for (action in csn.departureActions) {
+                action.execute(transition)?.join()
+              }
 
-            currentStateNode = stateNodes.find { it.state == transition.toState }
+              currentStateNode = stateNodes.find { it.state == transition.toState }
 
-            for (action in currentStateNode!!.arrivalActions) {
-              action.execute(transition)?.join()
+              for (action in currentStateNode!!.arrivalActions) {
+                action.execute(transition)?.join()
+              }
+
+              break
             }
           }
         }
@@ -142,14 +166,19 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
 
 
   inner class StateNode(val state: State) {
-    internal val events = mutableMapOf<Event, Transition>()
+    internal val events = mutableMapOf<Event, MutableList<Transition>>()
     internal val departureActions = mutableListOf<DepartureAction>()
     internal val arrivalActions = mutableListOf<ArrivalAction>()
     override fun toString() = state.toString()
   }
 
 
-  inner class Transition(val fromState: State, val toState: State, val event: Event, val condition: Condition? = null) {
+  inner class Transition(
+    val fromState: State,
+    val toState: State,
+    val event: Event,
+    val condition: Condition? = null
+  ) {
     fun isValid() = condition?.invoke(this) ?: true
     override fun toString(): String {
       return "Transition $fromState ---$event--> $toState"
@@ -196,7 +225,12 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
     }
   }
 
-  inner class EventAction(val event: Event, val fromState: State? = null, val toState: State? = null, action: Action) :
+  inner class EventAction(
+    val event: Event,
+    val fromState: State? = null,
+    val toState: State? = null,
+    action: Action
+  ) :
     TransitionAction(action) {
     override suspend fun execute(transition: Transition): Job? {
       if ((toState == null || toState == transition.toState) && (fromState == null || fromState == transition.fromState)) {
@@ -233,9 +267,8 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
   val transition: TransitionTemplate
     get() {
       _tt?.generate()
-      val tt = TransitionTemplate()
-      _tt = tt
-      return tt
+      _tt = TransitionTemplate()
+      return _tt!!
     }
 
   infix fun TransitionTemplate.from(state: State): TransitionTemplate {
@@ -258,6 +291,8 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
 
 
   enum class ActionKind { ON_ARRIVAL, ON_DEPARTURE, ON_EVENT }
+
+  internal var _at: ActionTemplate? = null
 
   inner class ActionTemplate(
     private val kind: ActionKind,
@@ -290,12 +325,28 @@ class StateMaschine(val context: CoroutineContext = Dispatchers.Default) : Corou
         )
       }
 
+      _at = null
     }
   }
 
-  val arriving get() = ActionTemplate(ActionKind.ON_ARRIVAL)
-  val departing get() = ActionTemplate(ActionKind.ON_DEPARTURE)
-  val receiving get() = ActionTemplate(ActionKind.ON_EVENT)
+  val arriving: ActionTemplate
+    get() {
+      if (_at != null) throw Exception("previous action is missing run block")
+      _at = ActionTemplate(ActionKind.ON_ARRIVAL)
+      return _at!!
+    }
+  val departing: ActionTemplate
+    get() {
+      if (_at != null) throw Exception("previous action is missing run block")
+      _at = ActionTemplate(ActionKind.ON_DEPARTURE)
+      return _at!!
+    }
+  val receiving: ActionTemplate
+    get() {
+      if (_at != null) throw Exception("previous action is missing run block")
+      _at = ActionTemplate(ActionKind.ON_EVENT)
+      return _at!!
+    }
 
   infix fun ActionTemplate.at(state: State): ActionTemplate {
     this.toState = state; return this
@@ -326,9 +377,6 @@ fun StateMaschine(context: CoroutineContext = Dispatchers.Default, init: StateMa
   val sm = StateMaschine(context)
   sm.init()
   sm._tt?.generate()
+  if (sm._at != null) throw Exception("last action is missing run block")
   return sm
 }
-
-
-
-
