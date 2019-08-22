@@ -25,6 +25,14 @@ val sm = StateMaschine {
   transition from STOPPED to STARTED by START // you can also use "via" instead of "by"
   transition from STARTED to STOPPED by STOP
 
+  receiving of STARTED run {
+    ...
+  }
+
+  departing from STOPPED run {
+    ...
+  }
+
   arriving at STARTED run {
     println("reached STARTED")
   }
