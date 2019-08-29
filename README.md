@@ -1,6 +1,6 @@
 ## StateMaschine
 
-Minimalist state machine Kotlin library
+Minimalist state machine library Kotlin/Swift
 
 ### Installation
 
@@ -8,7 +8,7 @@ Just copy the file to your project.
 
 ### Usage
 
-#### Example
+#### Kotlin example
 ```kotlin
 import de.4evar.statemaschine.*
 
@@ -45,11 +45,45 @@ sm.start()
 sm signal START
 ```
 
+#### Swift example
+```swift
+
+enum TestEvent: String, Event {
+  var name: String {
+    get { return self.rawValue }
+  }
+  
+  case START, STOP, FOOBAR
+}
+
+enum TestState: String, State {
+  var name: String {
+    get { return self.rawValue }
+  }
+  
+  case STOPPED, STARTED, FOOBAR
+}
+
+
+let sm = StateMaschine<TestState, TestEvent>()
+
+sm =+ TestState.STOPPED >>> TestEvent.START >>> TestState.STARTED ??? nil
+sm =+ TestState.STARTED >>> TestEvent.STOP >>> TestState.STOPPED ??? nil
+      
+sm =< TestState.STARTED !!! { _ in print("STARTED") }
+sm =< TestState.STOPPED !!! { _ in print("STOPPED") }
+
+try sm.start()
+      
+TestEvent.START >>> sm
+TestEvent.STOP >>> sm
+```
+
 #### Details
 
 You declare your own state and event classes by implementing State and Event interfaces. I think defining enums is the best way to go.
 
-This implementation uses Kotlin coroutines to facility an asynchronous approach. When defining the state machine you can pass in the dispatcher, e.g. Dispatchers.Main, to use when the user defined action is executed. 
+The Kotlin implementation uses coroutines to facility an asynchronous approach. When defining the state machine you can pass in the dispatcher, e.g. Dispatchers.Main, to use when the user defined action is executed. 
 
 ```kotlin
 val sm = StateMaschine(Dispatchers.Main) {
@@ -59,7 +93,11 @@ val sm = StateMaschine(Dispatchers.Main) {
 
 The syntax for defining the states and transitions is as follows:
 
+##### Kotlin
    **transition from** STATE1 **to** STATE2 (**by**|**via**) EVENT1 [**check { ... }**]
+
+##### Swift
+  **sm =+** STATE1 **>>>** EVENT **>>>** STATE2 **???** (nil | { transition in ... })
 
 The block after **check** has the signature `(StateMaschine.Transition) -> Boolean`. If the block returns true the transition is executed when the event is received.
 If there is no transition defined for the event, an exception is raised. You can have more than one transition for the same event, e.g. when you have different checks for routing. They are then evaluated in the order of their definition and the first valid one is used.
