@@ -83,6 +83,7 @@ TestEvent.STOP >>> sm
 
 You declare your own state and event classes by implementing State and Event interfaces. I think defining enums is the best way to go.
 
+The Swift implementation executes the actions in a background threat. That means you have to switch to the main thread if you want to manipulate the UI inside the action.
 The Kotlin implementation uses coroutines to facility an asynchronous approach. When defining the state machine you can pass in the dispatcher, e.g. Dispatchers.Main, to use when the user defined action is executed. 
 
 ```kotlin
