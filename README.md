@@ -93,19 +93,22 @@ val sm = StateMaschine(Dispatchers.Main) {
 
 The syntax for defining the states and transitions is as follows:
 
-##### Kotlin
+##### Kotlin:
    **transition from** STATE1 **to** STATE2 (**by**|**via**) EVENT1 [**check { ... }**]
 
-##### Swift
-  **sm =+** STATE1 **>>>** EVENT **>>>** STATE2 **???** (nil | { transition in ... })
-
 The block after **check** has the signature `(StateMaschine.Transition) -> Boolean`. If the block returns true the transition is executed when the event is received.
-If there is no transition defined for the event, an exception is raised. You can have more than one transition for the same event, e.g. when you have different checks for routing. They are then evaluated in the order of their definition and the first valid one is used.
+If there is no transition defined for the received event, an exception is raised. You can have more than one transition for the same event, e.g. when you have different checks for routing. They are then evaluated in the order of their definition and the first valid one is used.
+
+##### Swift:
+  let sm = StateMaschine<TestState, TestEvent>()
+  sm **=+** STATE1 **>>>** EVENT **>>>** STATE2 **???** (nil | { transition in ... })
+  
+The block after **???** has the signature `(StateMaschine.Transition) -> Bool`. 
 
 The first **from** state in the first **transition** definition will become the starting state of the state machine. If you want to start from a different state you can pass that state to the `start()` method, e.g. `start(FOOBAR)`.
 
 
-The syntax for describing the actions is as follows:
+The syntax for describing the actions is as follows in Kotlin:
 
   **receiving of** EVENT1 [**from** STATE2] [**to** STATE2] **run** { ... }
   
@@ -114,3 +117,17 @@ The syntax for describing the actions is as follows:
   **arriving at** STATE1 [**from** STATE2] [(**by**|**via**) EVENT1] **run** { ... }
   
 The **run** block has the signature `(StateMaschine.Transition) -> Unit`. The actions are executed in the following order: 'receiving of', 'departing from', 'arriving at'. There can be multiple actions for the same conditions. They are then executed in the order they were defined.
+
+The Swift syntax:
+
+let sm = StateMaschine<TestState, TestEvent>()
+
+##### Execute action when an event is received:
+sm **=!** EVENT1 [**>>>** TO_STATE] [**<<<** FROM_STATE] **!!!** { transition in ... }
+
+##### Execute action when a state is departed from:
+sm **=>** FROM_STATE [**>>>** TO_STATE] [**>>>** EVENT1] **!!!** { transition in ... }
+
+##### Execute action when a state is arrived at:
+sm **=<** TO_STATE [**>>>** FROM_STATE] [**>>>** EVENT1] **!!!** { transition in ... }
+
