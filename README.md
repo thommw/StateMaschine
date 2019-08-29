@@ -130,5 +130,5 @@ sm **=!** EVENT1 [**>>>** TO_STATE] [**<<<** FROM_STATE] **!!!** { transition in
 sm **=>** FROM_STATE [**>>>** TO_STATE] [**>>>** EVENT1] **!!!** { transition in ... }
 
 ##### Execute action when a state is arrived at:
-sm **=<** TO_STATE [**>>>** FROM_STATE] [**>>>** EVENT1] **!!!** { transition in ... }
+sm **=<** TO_STATE [**<<<** FROM_STATE] [**>>>** EVENT1] **!!!** { transition in ... }
 
