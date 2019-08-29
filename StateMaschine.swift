@@ -323,11 +323,17 @@ class StateMaschine<S: State, E: Event> {
     }
     
     @discardableResult
+    static func <<< (lhs: ActionTemplate, rhs: S) -> ActionTemplate {
+      lhs.fromState = rhs
+      return lhs
+    }
+    
+    @discardableResult
     static func >>> (lhs: ActionTemplate, rhs: E) -> ActionTemplate {
       lhs.event = rhs
       return lhs
     }
-
+    
     static func !!! (lhs: ActionTemplate, rhs: @escaping Action) {
       lhs.action = rhs
       lhs.generate(action: rhs)
